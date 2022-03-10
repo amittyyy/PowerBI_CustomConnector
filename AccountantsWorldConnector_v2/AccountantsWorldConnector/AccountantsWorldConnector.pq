@@ -1,24 +1,39 @@
 ﻿/***************************************************************************************************************
 **** AT. 020252022 Accoutnig power Customer Power BI Connector. ************************************************
 **** This application will get data form Accoutning power External API via OAuth2 service. ********************* 
+
+***** QA Links *************************************************************************************************
+Links:
+https://qa-accountingexternalapi.accountingpower.com/api/status
+https://qa-accountingexternalapi.accountingpower.com/swagger/index.html
+
 ***************************************************************************************************************/
 
 section AccountantsWorldConnector;
 
-url = "https://dev-accountingexternalapi.accountingpower.com/api/";
+url = "https://qa-accountingexternalapi.accountingpower.com/api/";
 
 //AT. 02252022 Ext Accounting power api client ID and Secrete
-client_id = "36VXYCeMwpB0pHrmC6PZqkMdwu%2BYCCU%2FABmui1i60GjNOZ1oafQK9Zm5eKbOImoP";
-client_secret = "LY5q9u8CjNUQQp7t69N%2BLQvpGtxj69JTLEcIAvTOyEasnAF3GYWYS8aAaW6ElsRl";
+//Dev
+// client_id = "36VXYCeMwpB0pHrmC6PZqkMdwu%2BYCCU%2FABmui1i60GjNOZ1oafQK9Zm5eKbOImoP";
+// client_secret = "LY5q9u8CjNUQQp7t69N%2BLQvpGtxj69JTLEcIAvTOyEasnAF3GYWYS8aAaW6ElsRl";
+
+//QA
+client_id = "0eFqY55DvwJgZKLn3DNrRQt1ukq%2BDcEnxc%2FFxX%2Bcu1nWnbEH2RMrE1VC%2BGRtMABw";
+client_secret = "sOhiOjjBVAgp7uZGUE8bN5XqigiYuadEVoCJ1oNg%2Fbc%2BaGo20ZcgeHsrPuayZoQS";
 
 redirect_uri = "https://oauth.powerbi.com/views/oauthredirect.html";
-token_uri = "https://dev-auth.accountantsoffice.com/connect/token";
-authorize_uri = "https://dev-auth.accountantsoffice.com/connect/authorize";
-logout_uri = "https://dev-auth.accountantsoffice.com/connect/logout";
+token_uri = "https://qa-auth.accountantsoffice.com/connect/token";
+authorize_uri = "https://qa-auth.accountantsoffice.com/connect/authorize";
+logout_uri = "https://qa-auth.accountantsoffice.com/connect/logout";
 // apiKey = "23911c167cc4417d940b4bb8f17c0a6d";
 
 //AT. ACCounting client Api Keys
-apiKey = "3911864bb1dd427a8983f2b10522f827";
+//Dev
+// apiKey = "3911864bb1dd427a8983f2b10522f827";
+
+//QA
+apiKey = "dd0d3a174dbc4bf284b86b532eef3246";
 
 //AT. Paramters for Transactions
 fromCurrentDate= Number.ToText(Date.Year(DateTime.LocalNow())) & "-01-01";
@@ -140,9 +155,11 @@ GetAccounts = () as table =>
                 RelativePath = "accounts",
                 Headers = headers
             ]
-        ))[accounts],
-      data = Table.FromList(dataList, Splitter.SplitByNothing(), null, null, ExtraValues.Error),
-      accountsColumns = Table.ExpandRecordColumn(data, "Column1", {"code", "description", "type", "typeDescription", "class", "classDescription", "category", "categoryDescription", "beginningBalance"})
+        )),
+         accountsColumns = if  List.IsEmpty(dataList[accounts]) then
+            emptyTable
+       else  
+            Table.ExpandRecordColumn(Table.FromList(dataList[accounts], Splitter.SplitByNothing(), null, null, ExtraValues.Error), "Column1", {"code", "description", "type", "typeDescription", "class", "classDescription", "category", "categoryDescription", "beginningBalance"})
           
     in
         accountsColumns;
@@ -157,9 +174,11 @@ GetCustomers = () as table =>
                 RelativePath = "customers",
                 Headers = headers
             ]
-        ))[customers],
-      data = Table.FromList(dataList, Splitter.SplitByNothing(), null, null, ExtraValues.Error),
-      customerColumns = Table.ExpandRecordColumn(data, "Column1", {"id", "name", "address1", "city", "state", "zip", "email", "phoneNumber", "balanceDue", "shipAddress1","shipCity", "shipState","shipZip","isInactive","salesTaxState", "salesTaxCounty", "salesTaxRate"})
+        )),
+        customerColumns = if List.IsEmpty(dataList[customers]) then
+            emptyTable
+       else  
+            Table.ExpandRecordColumn(Table.FromList(dataList[customers], Splitter.SplitByNothing(), null, null, ExtraValues.Error), "Column1", {"id", "name", "address1", "city", "state", "zip", "email", "phoneNumber", "balanceDue", "shipAddress1","shipCity", "shipState","shipZip","isInactive","salesTaxState", "salesTaxCounty", "salesTaxRate"})
 
     in
         customerColumns;
@@ -175,9 +194,11 @@ GetTrailBalance = () as table =>
                 Query = [period="2021-04-30", IsYearToDate="true"],
                 Headers = headers
             ]
-        ))[accounts],
-      data = Table.FromList(dataList, Splitter.SplitByNothing(), null, null, ExtraValues.Error),
-      trialBalanceColumns = Table.ExpandRecordColumn(data, "Column1",{"code","type","description","beginningBalance","transactionsDebit","transactionsCredit","unadjustedBalance","adjustmentsDebit","adjustmentsCredit","adjustedBalance","notes"})
+        )),
+         trialBalanceColumns = if List.IsEmpty(dataList[accounts]) then
+            emptyTable
+        else  
+            Table.ExpandRecordColumn(Table.FromList(dataList[accounts], Splitter.SplitByNothing(), null, null, ExtraValues.Error), "Column1",{"code","type","description","beginningBalance","transactionsDebit","transactionsCredit","unadjustedBalance","adjustmentsDebit","adjustmentsCredit","adjustedBalance","notes"})
 
     in
         trialBalanceColumns;
@@ -192,9 +213,11 @@ GetVendors = () as table =>
                 RelativePath = "vendors",                
                 Headers = headers
             ]
-        ))[vendors],
-      data = Table.FromList(dataList, Splitter.SplitByNothing(), null, null, ExtraValues.Error),
-      vendorsColumns = Table.ExpandRecordColumn(data, "Column1",{"id","name","aliasName","is1099","address1","city","phoneNumber","faxNumber","isInactive","terms","defaultAccountCode","departmentId","isW9"})
+        )),
+         vendorsColumns = if List.IsEmpty(dataList[vendors]) then
+            emptyTable
+        else  
+            Table.ExpandRecordColumn(Table.FromList(dataList[vendors], Splitter.SplitByNothing(), null, null, ExtraValues.Error), "Column1",{"id","name","aliasName","is1099","address1","city","phoneNumber","faxNumber","isInactive","terms","defaultAccountCode","departmentId","isW9"})
 
     in
         vendorsColumns;
@@ -209,9 +232,11 @@ GetDepartments = () as table =>
                 RelativePath = "departments",                
                 Headers = headers
             ]
-        ))[departments],
-      data = Table.FromList(dataList, Splitter.SplitByNothing(), null, null, ExtraValues.Error),
-      departmentsColumns = Table.ExpandRecordColumn(data, "Column1",{"id","code","departmentName","shortName","isPrimary"})
+        )),
+        departmentsColumns = if List.IsEmpty(dataList[departments]) then
+            emptyTable
+      else  
+            Table.ExpandRecordColumn(Table.FromList(dataList[departments], Splitter.SplitByNothing(), null, null, ExtraValues.Error), "Column1",{"id","code","departmentName","shortName","isPrimary"})
 
     in
         departmentsColumns;
@@ -226,9 +251,11 @@ GetEmployees = () as table =>
                 RelativePath = "employees",                
                 Headers = headers
             ]
-        ))[employees],
-      data = Table.FromList(dataList, Splitter.SplitByNothing(), null, null, ExtraValues.Error),
-      employeesColumns = Table.ExpandRecordColumn(data, "Column1",{"id","employeeNumber","fullName","firstName","lastName","companyPhone","state","departmentId","deptCode","deptName","salaryAccountCode","isFICAExempt","isCorporateOfficer","isSalesRep","isInactive"})
+        )),
+        employeesColumns = if List.IsEmpty(dataList[employees]) then
+            emptyTable
+      else
+            Table.ExpandRecordColumn(Table.FromList(dataList[employees], Splitter.SplitByNothing(), null, null, ExtraValues.Error), "Column1",{"id","employeeNumber","fullName","firstName","lastName","companyPhone","state","departmentId","deptCode","deptName","salaryAccountCode","isFICAExempt","isCorporateOfficer","isSalesRep","isInactive"})
      
     in
         employeesColumns;
@@ -243,9 +270,11 @@ GetJobs = () as table =>
                 RelativePath = "jobs",                
                 Headers = headers
             ]
-        ))[jobs],
-      data = Table.FromList(dataList, Splitter.SplitByNothing(), null, null, ExtraValues.Error),
-      jobssColumns = Table.ExpandRecordColumn(data, "Column1",{"id","jobNumber","jobName","customerId","customerName","description","notes","startDate","projectedEndDate","status","jobTypeId","jobType","jobPhaseId","jobPhase","estimatedRevenue","estimatedExpenses","openingBalance"})
+        )),
+         jobssColumns = if List.IsEmpty(dataList[jobs]) then
+            emptyTable
+      else
+            Table.ExpandRecordColumn(Table.FromList(dataList[jobs], Splitter.SplitByNothing(), null, null, ExtraValues.Error), "Column1",{"id","jobNumber","jobName","customerId","customerName","description","notes","startDate","projectedEndDate","status","jobTypeId","jobType","jobPhaseId","jobPhase","estimatedRevenue","estimatedExpenses","openingBalance"})
       
     in
         jobssColumns;
@@ -260,10 +289,11 @@ GetJobCategories = () as table =>
                 RelativePath = "jobs/categories",                
                 Headers = headers
             ]
-        ))[list],
-      data = Table.FromList(dataList, Splitter.SplitByNothing(), null, null, ExtraValues.Error),
-      jobCategoriesColumns = Table.ExpandRecordColumn(data, "Column1",{"id","description"})
-     
+        )),
+        jobCategoriesColumns = if List.IsEmpty(dataList[list]) then
+            emptyTable
+      else    
+            Table.ExpandRecordColumn(Table.FromList(dataList[list], Splitter.SplitByNothing(), null, null, ExtraValues.Error), "Column1",{"id","description"})     
     in
         jobCategoriesColumns;
 
@@ -277,10 +307,13 @@ GetPeriods = () as table =>
                 RelativePath = "periods",                
                 Headers = headers
             ]
-        ))[periods],
-      data = Table.FromList(dataList, Splitter.SplitByNothing(), null, null, ExtraValues.Error)           
+        )),
+         periodColumns = if List.IsEmpty(dataList[periods]) then
+            emptyTable
+        else    
+            Table.FromList(dataList[periods], Splitter.SplitByNothing(), null, null, ExtraValues.Error)           
     in
-        data;
+        periodColumns;
 
 GetPeriodAllowedForGeneralJournal = () as table =>
         let 
@@ -292,10 +325,13 @@ GetPeriodAllowedForGeneralJournal = () as table =>
                 RelativePath = "periods/AllowedForGeneralJournal",                
                 Headers = headers
             ]
-        ))[periods],
-      data = Table.FromList(dataList, Splitter.SplitByNothing(), null, null, ExtraValues.Error)           
+        )),
+         jobPeriodAllowedColumns = if List.IsEmpty(dataList[periods]) then
+            emptyTable
+        else   
+         Table.FromList(dataList[periods], Splitter.SplitByNothing(), null, null, ExtraValues.Error)           
     in
-        data;
+        jobPeriodAllowedColumns;
 
 GetJobTypes = () as table =>
         let 
@@ -307,9 +343,11 @@ GetJobTypes = () as table =>
                 RelativePath = "jobs/types",                
                 Headers = headers
             ]
-        ))[list],
-      data = Table.FromList(dataList, Splitter.SplitByNothing(), null, null, ExtraValues.Error),
-      jobTypesColumns = Table.ExpandRecordColumn(data, "Column1",{"id","description"})
+        )),
+         jobTypesColumns = if List.IsEmpty(dataList[list]) then
+            emptyTable
+        else   
+            Table.ExpandRecordColumn(Table.FromList(dataList[list], Splitter.SplitByNothing(), null, null, ExtraValues.Error), "Column1",{"id","description"}) 
      
     in
         jobTypesColumns;
@@ -324,10 +362,11 @@ GetJobPhases = () as table =>
                 RelativePath = "jobs/phases",                
                 Headers = headers
             ]
-        ))[list],
-      data = Table.FromList(dataList, Splitter.SplitByNothing(), null, null, ExtraValues.Error),
-      jobPhasesColumns = Table.ExpandRecordColumn(data, "Column1",{"id","description"})
-     
+        )),
+         jobPhasesColumns = if List.IsEmpty(dataList[list]) then
+            emptyTable
+        else   
+            Table.ExpandRecordColumn(Table.FromList(dataList[list], Splitter.SplitByNothing(), null, null, ExtraValues.Error), "Column1",{"id","description"})     
     in
         jobPhasesColumns;
 
